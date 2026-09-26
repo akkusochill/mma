@@ -1,0 +1,68 @@
+section .data
+
+msg db "Original String: Hello World", 10
+msg_len equ $-msg
+
+msg_rev db 10, "Reversed String: "
+msg_rev_len equ $-msg_rev
+
+str db "Hello World", 0
+
+%macro op 4
+    mov rax, %1
+    mov rdi, %2
+    mov rsi, %3
+    mov rdx, %4
+    syscall
+%endmacro
+
+section .bss
+
+rev_str resb 32
+
+section .text
+global _start
+
+_start:
+
+    ; Display original string
+    op 1, 1, msg, msg_len
+
+    ; Calculate string length
+    mov rsi, str
+    xor rcx, rcx
+
+len_calc:
+    cmp byte [rsi], 0
+    je len_done
+
+    inc rcx
+    inc rsi
+    jmp len_calc
+
+len_done:
+
+    ; Start from last character
+    mov rsi, str
+    add rsi, rcx
+    dec rsi
+
+    ; Destination for reversed string
+    mov rdi, rev_str
+
+rev_loop:
+
+    mov al, [rsi]
+    mov [rdi], al
+
+    dec rsi
+    inc rdi
+
+    loop rev_loop
+
+    ; Display reversed string
+    op 1, 1, msg_rev, msg_rev_len
+    op 1, 1, rev_str, 11
+
+    ; Exit
+    op 60, 0, 0, 0
