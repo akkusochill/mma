@@ -1,0 +1,54 @@
+section .data
+
+msg db "Array sorted successfully", 10
+msg_len equ $-msg
+
+arr dq 50h, 20h, 40h, 10h, 30h
+n equ 5
+
+%macro op 4
+    mov rax, %1
+    mov rdi, %2
+    mov rsi, %3
+    mov rdx, %4
+    syscall
+%endmacro
+
+section .text
+global _start
+
+_start:
+
+    mov rbx, n
+    dec rbx                 ; outer loop = n-1
+
+outer_loop:
+
+    mov rcx, rbx            ; inner loop counter
+    mov rsi, arr            ; point to first element
+
+inner_loop:
+
+    mov rax, [rsi]          ; first element
+    mov rdx, [rsi+8]        ; next element
+
+    cmp rax, rdx
+    jle no_swap              ; if first <= second, don't swap
+
+    ; Swap
+    mov [rsi], rdx
+    mov [rsi+8], rax
+
+no_swap:
+
+    add rsi, 8              ; move to next element
+    loop inner_loop
+
+    dec rbx
+    jnz outer_loop
+
+    ; Display message
+    op 1, 1, msg, msg_len
+
+    ; Exit
+    op 60, 0, 0, 0
