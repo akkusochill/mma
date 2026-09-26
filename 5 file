@@ -1,0 +1,114 @@
+section .data
+
+msg1 db "Error", 10
+msg1l equ $-msg1
+
+msg2 db "File copied successfully", 10
+msg2l equ $-msg2
+
+%macro op 4
+    mov rax, %1
+    mov rdi, %2
+    mov rsi, %3
+    mov rdx, %4
+    syscall
+%endmacro
+
+section .bss
+
+fname1 resb 512
+fd1    resq 1
+
+fname2 resb 512
+fd2    resq 1
+
+buff   resb 512
+bufflen resq 1
+
+section .text
+global _start
+
+_start:
+
+    ; argc
+    pop r8
+    cmp r8, 3
+    jne err
+
+    ; argv[0]
+    pop r8
+
+    ; argv[1] = source filename
+    pop r8
+
+    mov rsi, fname1
+
+copy_source:
+    mov al, [r8]
+    cmp al, 0
+    je next
+
+    mov [rsi], al
+    inc r8
+    inc rsi
+    jmp copy_source
+
+next:
+
+    ; argv[2] = destination filename
+    pop r8
+
+    mov rsi, fname2
+
+copy_destination:
+    mov al, [r8]
+    cmp al, 0
+    je next2
+
+    mov [rsi], al
+    inc r8
+    inc rsi
+    jmp copy_destination
+
+next2:
+
+    ; Open source file
+    op 2, fname1, 0, 0777q
+    cmp rax, 0
+    jl err
+
+    mov [fd1], rax
+
+    ; Read source file
+    op 0, [fd1], buff, 512
+    mov [bufflen], rax
+
+    ; Create destination file
+    op 85, fname2, 0777q, 0
+
+    ; Open destination file
+    op 2, fname2, 2, 0777q
+    cmp rax, 0
+    jl err
+
+    mov [fd2], rax
+
+    ; Write data
+    op 1, [fd2], buff, [bufflen]
+
+    ; Close destination
+    op 3, [fd2], 0, 0
+
+    ; Close source
+    op 3, [fd1], 0, 0
+
+    ; Success message
+    op 1, 1, msg2, msg2l
+
+    jmp exit
+
+err:
+    op 1, 1, msg1, msg1l
+
+exit:
+    op 60, 0, 0, 0
