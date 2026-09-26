@@ -1,0 +1,107 @@
+section .data
+
+msg_gdtr db 10, "GDTR: "
+l_gdtr equ $-msg_gdtr
+
+msg_idtr db 10, "IDTR: "
+l_idtr equ $-msg_idtr
+
+msg_ldtr db 10, "LDTR: "
+l_ldtr equ $-msg_ldtr
+
+msg_tr db 10, "TR: "
+l_tr equ $-msg_tr
+
+msg_msw db 10, "MSW: "
+l_msw equ $-msg_msw
+
+newline db 10
+
+%macro op 4
+    mov rax, %1
+    mov rdi, %2
+    mov rsi, %3
+    mov rdx, %4
+    syscall
+%endmacro
+
+section .bss
+
+gdt_buf resb 10
+idt_buf resb 10
+ldt_buf resw 1
+tr_buf  resw 1
+msw_buf resd 1
+char_ans resb 4
+
+section .text
+global _start
+
+_start:
+
+    ; Read system registers
+    sgdt [gdt_buf]
+    sidt [idt_buf]
+    sldt [ldt_buf]
+    str  [tr_buf]
+    smsw [msw_buf]
+
+    ; Display GDTR
+    op 1, 1, msg_gdtr, l_gdtr
+    mov ax, [gdt_buf]
+    call disp_16
+
+    ; Display IDTR
+    op 1, 1, msg_idtr, l_idtr
+    mov ax, [idt_buf]
+    call disp_16
+
+    ; Display LDTR
+    op 1, 1, msg_ldtr, l_ldtr
+    mov ax, [ldt_buf]
+    call disp_16
+
+    ; Display TR
+    op 1, 1, msg_tr, l_tr
+    mov ax, [tr_buf]
+    call disp_16
+
+    ; Display MSW
+    op 1, 1, msg_msw, l_msw
+    mov ax, [msw_buf]
+    call disp_16
+
+    op 1, 1, newline, 1
+
+    ; Exit
+    op 60, 0, 0, 0
+
+
+; Procedure to display 4-digit HEX
+disp_16:
+
+    mov bx, ax
+    mov rdi, char_ans
+    mov rcx, 4
+
+d_loop:
+
+    rol bx, 4
+    mov al, bl
+    and al, 0Fh
+
+    cmp al, 09h
+    jbe d_skip
+
+    add al, 07h
+
+d_skip:
+    add al, 30h
+    mov [rdi], al
+    inc rdi
+
+    loop d_loop
+
+    op 1, 1, char_ans, 4
+
+    ret
