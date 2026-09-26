@@ -1,0 +1,65 @@
+section .data
+
+msg db "Sum of array elements: ", 10
+msg_len equ $-msg
+
+arr dq 10h, 20h, 30h, 40h, 50h
+n equ 5
+
+%macro op 4
+    mov rax, %1
+    mov rdi, %2
+    mov rsi, %3
+    mov rdx, %4
+    syscall
+%endmacro
+
+section .bss
+
+char_ans resb 16
+
+section .text
+global _start
+
+_start:
+
+    ; Display message
+    op 1, 1, msg, msg_len
+
+    ; Addition of array elements
+    mov rsi, arr
+    mov rcx, n
+    xor rax, rax
+
+add_loop:
+    add rax, [rsi]
+    add rsi, 8
+    loop add_loop
+
+    ; Convert sum into hexadecimal ASCII
+    mov rbx, rax
+    mov rdi, char_ans
+    mov rcx, 16
+
+conv_loop:
+    rol rbx, 4
+    mov al, bl
+    and al, 0Fh
+
+    cmp al, 09h
+    jbe skip_add
+
+    add al, 07h
+
+skip_add:
+    add al, 30h
+    mov [rdi], al
+    inc rdi
+
+    loop conv_loop
+
+    ; Display result
+    op 1, 1, char_ans, 16
+
+    ; Exit
+    op 60, 0, 0, 0
